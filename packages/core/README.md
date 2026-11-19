@@ -132,7 +132,7 @@ saving. Archived hard experiments are separate from active generation.
     many scans made progress. Counts depend on rule and scan order; scans are
     not inference depth. A stalled result does not imply multiple solutions.
   - `SolveTracer` observes successful cell assignments without changing the
-    deduction order. `solveTrace` records version 7, the priority-first policy,
+    deduction order. `solveTrace` records     version 8, the priority-first policy,
     and ordered zero-based cell coordinates with rule, color, and scan number.
     Scan numbers include scans with no progress and are not dependency depth;
     a record is one confirmed cell, not one independent logical argument.
@@ -215,6 +215,10 @@ saving. Archived hard experiments are separate from active generation.
     is included in assumption replay. The global assumption search permits up
     to 5,000 shapes per island and 50 ms per color assumption; hitting either
     limit returns inconclusive.
+  - Version 8 promotes `assumptionContradiction` to stage 4. Easy generation now
+    requires a complete solution without stage-4 use, while Normal generation
+    requires at least one stage-4 assumption contradiction. This makes solver
+    observations an explicit generation condition rather than a density label.
   - Each recorded assignment has a `review` scope: distinct referenced cells
     and the height/width of their bounding rectangle. Local rules use their
     component/candidate neighborhood; shape rules include examined

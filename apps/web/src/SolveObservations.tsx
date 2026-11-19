@@ -47,7 +47,7 @@ export function SolveObservations({ trace, activeStepIndex = null }: { trace: So
           : '확정 기록 없음'}</li>
         <li>관측 시점 최소 다음 수 후보: {metrics.minCandidateCells === null ? '해당 없음' : `${metrics.minCandidateCells}칸`}</li>
         <li>후보가 1칸뿐인 관측 시점: {metrics.singleCandidateCheckpoints}회</li>
-        <li>가정·백트래킹: 사용하지 않는 솔버</li>
+        <li>가정: 한 칸 색상 검증만 사용 · 백트래킹: 사용하지 않음</li>
       </ul>
       <table>
         <caption>규칙별 확정 칸 수</caption>
@@ -63,7 +63,7 @@ export function SolveObservations({ trace, activeStepIndex = null }: { trace: So
           ))}
         </tbody>
       </table>
-      <p>1단계: 국소 판단 · 2단계: 도달 불가 영역 · 3단계: 후보·연결·가정 구조.</p>
+      <p>1단계: 국소 판단 · 2단계: 도달 불가 영역 · 3단계: 후보·연결 구조 · 4단계: 가정 모순 검증.</p>
       <p>검토 범위는 규칙이 참조한 영역의 크기이지, 사람이 반드시 살펴봐야 하는 최소 범위가 아닙니다. 도달 불가·바다 연결성·흰 칸 연결 통로는 보드 전체를 범위로 기록합니다.</p>
       <p>다음 수 후보는 스캔 시작 상태에서 추가 전개 없이 현재 규칙으로 확정 가능한 서로 다른 칸입니다. 중복은 가장 낮은 단계로 셉니다. 규칙·모양 열거 한도에 영향을 받으며, 후보가 적다는 이유만으로 어렵다고 판정하지 않습니다.</p>
       <details>
@@ -71,13 +71,14 @@ export function SolveObservations({ trace, activeStepIndex = null }: { trace: So
         <div className="solve-trace">
           <table>
             <caption>스캔 시작 상태별 후보 수</caption>
-            <thead><tr><th>확정 기록 이후</th><th>후보</th><th>1단계</th><th>2단계</th><th>3단계</th></tr></thead>
+            <thead><tr><th>확정 기록 이후</th><th>후보</th><th>1단계</th><th>2단계</th><th>3단계</th><th>4단계</th></tr></thead>
             <tbody>
               {trace.checkpoints.filter(({ remainingCells }) => remainingCells > 0).map((checkpoint) => (
                 <tr key={checkpoint.scan}>
                   <th scope="row">{checkpoint.confirmedBefore}개</th>
                   <td>{checkpoint.candidateCells}칸</td>
-                  <td>{checkpoint.byStage[1]}</td><td>{checkpoint.byStage[2]}</td><td>{checkpoint.byStage[3]}</td>
+                  <td>{checkpoint.byStage[1]}</td><td>{checkpoint.byStage[2]}</td>
+                  <td>{checkpoint.byStage[3]}</td><td>{checkpoint.byStage[4]}</td>
                 </tr>
               ))}
             </tbody>

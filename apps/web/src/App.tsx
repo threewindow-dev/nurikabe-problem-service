@@ -220,9 +220,12 @@ export default function App() {
               <li>같은 숫자의 단서: 전체 단서 수의 {quality.distribution.maxValuePercent}% 이하 (개수는 내림)</li>
               <li>단서 숫자 종류: 1부터 실제 최대 단서값까지의 {quality.distribution.minDistinctPercent}% 이상 등장 (종류 수는 올림)</li>
             </>}
-            <li>Nurikabe 규칙 충족 · 유일해 · 기존 8가지 직접 추론 규칙만으로 해결 가능</li>
+            <li>Nurikabe 규칙 충족 · 유일해 · 현재 추론 규칙으로 해결 가능</li>
+            <li>{difficulty === 'easy'
+              ? '4단계 가정 모순 검증 없이 해결 가능'
+              : '4단계 가정 모순 검증을 1회 이상 사용해 해결 가능'}</li>
           </ul>
-          <p>풀이 분석은 신규 규칙 4개를 포함한 12가지 규칙으로 기록합니다.</p>
+          <p>풀이 분석은 가정 모순 검증을 포함한 13가지 규칙으로 기록합니다.</p>
           <p><strong>선호 조건 (보장하지 않음)</strong></p>
           <ul>
             <li>흰 칸 비율을 50%에 가깝게 늘리기 (이미 50% 이상이면 줄이지 않음)</li>

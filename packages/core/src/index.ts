@@ -331,7 +331,8 @@ function runDeductions(
   board: NurikabeBoard,
   mode: 'generation' | 'analysis' = 'generation',
   adjacent = neighborsForBoard(board.width, board.height),
-  tracer?: SolveTracer
+  tracer?: SolveTracer,
+  maxAssumptionCells = Infinity
 ): DifficultyMetrics {
   const { width, height, clues, colors } = board;
   const cells: Array<Array<CellColor | null>> = clues.map((row) =>
@@ -349,6 +350,7 @@ function runDeductions(
   let deductionRounds = 0;
   let probing = false;
   let trialing = false;
+  let assumptionCells = 0;
   const proposals = new Map<DeductionRule, {
     row: number; col: number; color: CellColor; reviewed?: Iterable<number>;
   }>();
@@ -794,6 +796,8 @@ function runDeductions(
     for (let row = 0; row < height; row += 1) {
       for (let col = 0; col < width; col += 1) {
         if (cells[row][col] !== null) continue;
+        if (assumptionCells >= maxAssumptionCells) return null;
+        assumptionCells += 1;
         propagateAssumption(row, col, 'white');
         propagateAssumption(row, col, 'black');
         const whiteCompletes = canCompleteAssumption(row, col, 'white');
@@ -1026,7 +1030,7 @@ function refineBalancedBoard(
           continue;
         }
         checks += 1;
-        if (runDeductions(candidate, 'generation', adjacent).solved) {
+        if (meetsDifficultyRules(candidate, profile.difficulty, adjacent)) {
           result = candidate;
           whiteCount += 1;
           improved = true;
@@ -1062,7 +1066,7 @@ function refineBalancedBoard(
         clues[r][c] = clue;
         const candidate = { ...result, clues };
         checks += 1;
-        if (runDeductions(candidate, 'generation', adjacent).solved) {
+        if (meetsDifficultyRules(candidate, profile.difficulty, adjacent)) {
           result = candidate;
           break;
         }
@@ -1075,7 +1079,8 @@ function refineBalancedBoard(
 
 function spreadClues(
   initial: NurikabeBoard,
-  adjacent: Array<Array<Array<[number, number]>>>
+  adjacent: Array<Array<Array<[number, number]>>>,
+  difficulty: Difficulty
 ): NurikabeBoard {
   const { width, height } = initial;
   const rowCounts = initial.clues.map((row) => row.filter((clue) => clue !== null).length);
@@ -1111,7 +1116,7 @@ function spreadClues(
       clues[fromRow][fromCol] = null;
       const candidate = { ...result, clues };
       checks += 1;
-      if (!runDeductions(candidate, 'generation', adjacent).solved) continue;
+      if (!meetsDifficultyRules(candidate, difficulty, adjacent)) continue;
       result = candidate;
       rowCounts[fromRow]--;
       rowCounts[toRow]++;
@@ -1125,10 +1130,54 @@ function spreadClues(
   return result;
 }
 
+function findStageFourPlacement(
+  initial: NurikabeBoard,
+  adjacent: Array<Array<Array<[number, number]>>>
+): NurikabeBoard | null {
+  const { width, height } = initial;
+  const visited = Array.from({ length: height }, () => Array<boolean>(width).fill(false));
+  for (let row = 0; row < height; row += 1) {
+    for (let col = 0; col < width; col += 1) {
+      if (initial.colors[row][col] !== 'white' || visited[row][col]) continue;
+      const island = collectComponent(initial, row, col, 'white', visited);
+      const current = island.find(([r, c]) => initial.clues[r][c] !== null);
+      if (!current) throw new Error('Missing clue in generated island');
+      const [oldRow, oldCol] = current;
+      const clue = initial.clues[oldRow][oldCol];
+      if (clue === null) throw new Error('Missing clue in generated island');
+      for (const [newRow, newCol] of island) {
+        if (newRow === oldRow && newCol === oldCol) continue;
+        const clues = initial.clues.map((line) => [...line]);
+        clues[oldRow][oldCol] = null;
+        clues[newRow][newCol] = clue;
+        const candidate = { ...initial, clues };
+        if (meetsDifficultyRules(candidate, 'normal', adjacent)) return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+function meetsDifficultyRules(
+  board: NurikabeBoard,
+  difficulty: Difficulty,
+  adjacent: Array<Array<Array<[number, number]>>>
+): boolean {
+  if (difficulty === 'easy') {
+    return runDeductions(board, 'generation', adjacent).solved;
+  }
+  if (difficulty === 'normal') {
+    const metrics = runDeductions(board, 'analysis', adjacent, undefined, 8);
+    return metrics.solved && metrics.deductions.assumptionContradiction > 0;
+  }
+  return false;
+}
+
 function generateBalancedBoard(profile: GenerationProfile, seed: number): NurikabeBoard {
   const { size: { width, height }, difficulty, quality: { minLargestClue: largestTarget } } = profile;
   const { max: maximumClues } = getClueCountBounds(profile);
-  const random = makeRandom(seed, difficulty);
+  // The generator state is 32-bit; avoid pathological 53-bit timestamp paths for Normal.
+  const random = makeRandom(difficulty === 'normal' ? seed >>> 0 : seed, difficulty);
   const adjacent = neighborsForBoard(width, height);
   const maxAttempts = difficulty === 'easy'
     ? width === 12 ? MAX_LARGE_EASY_ATTEMPTS : MAX_EASY_ATTEMPTS
@@ -1158,9 +1207,14 @@ function generateBalancedBoard(profile: GenerationProfile, seed: number): Nurika
       const largest = Math.max(...clues);
       const summary = summarizeClues(clues);
       if (checkGenerationProfile(profile, summary).length === 0 &&
-          validateNurikabeBoard(result).valid && runDeductions(result, 'generation', adjacent).solved) {
-        const refined = refineBalancedBoard(result, positions, adjacent, profile);
-        return difficulty === 'normal' && width === 12 ? spreadClues(refined, adjacent) : refined;
+          validateNurikabeBoard(result).valid) {
+        const stageFour = difficulty === 'normal'
+          ? findStageFourPlacement(result, adjacent)
+          : null;
+        const refined = stageFour ?? refineBalancedBoard(result, positions, adjacent, profile);
+        const final = difficulty === 'normal' && width === 12
+          ? spreadClues(refined, adjacent, difficulty) : refined;
+        if (meetsDifficultyRules(final, difficulty, adjacent)) return final;
       }
       const valueLimit = getClueValueLimit(profile, clues.length);
       const excess = summary.clueDistribution.filter(({ count }) => count > valueLimit).map(({ value }) => value);

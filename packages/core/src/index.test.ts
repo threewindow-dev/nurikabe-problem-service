@@ -361,7 +361,8 @@ describe('puzzle analysis', () => {
     for (const [index, step] of steps.entries()) {
       const checkpoint = checkpoints[index];
       expect(checkpoint.confirmedBefore).toBe(index);
-      const firstStage = checkpoint.byStage[1] > 0 ? 1 : checkpoint.byStage[2] > 0 ? 2 : 3;
+      const firstStage = checkpoint.byStage[1] > 0 ? 1 : checkpoint.byStage[2] > 0 ? 2
+        : checkpoint.byStage[3] > 0 ? 3 : 4;
       expect(RULE_STAGES[step.rule]).toBe(firstStage);
     }
   });
@@ -405,7 +406,7 @@ describe('puzzle analysis', () => {
     ]);
     expect(analysis.solveTrace.checkpoints.map(({ candidateCells, remainingCells }) => [candidateCells, remainingCells]))
       .toEqual([[3, 3], [2, 2], [1, 1], [0, 0]]);
-    expect(analysis.solveTrace.checkpoints[0].byStage).toEqual({ 1: 2, 2: 1, 3: 0 });
+    expect(analysis.solveTrace.checkpoints[0].byStage).toEqual({ 1: 2, 2: 1, 3: 0, 4: 0 });
   });
 
   it('reports an unresolved puzzle without claiming it is invalid or non-unique', () => {
@@ -442,7 +443,7 @@ describe('puzzle analysis', () => {
     expect(analysis.deductions.completedIsland).toBe(1);
     expect(analysis.deductions.unreachable).toBe(0);
     expect(analysis.solveTrace.checkpoints[0]).toMatchObject({
-      candidateCells: 1, byStage: { 1: 1, 2: 0, 3: 0 }
+      candidateCells: 1, byStage: { 1: 1, 2: 0, 3: 0, 4: 0 }
     });
     expect(analysis.solveTrace.observations.highestStage).toBe(1);
   });
@@ -543,6 +544,7 @@ describe('puzzle analysis', () => {
     expect(analysis.remainingCells).toBe(0);
     expect(analysis.techniqueLevel).toBe('advanced');
     expect(analysis.deductions.assumptionContradiction).toBe(2);
+    expect(analysis.solveTrace.observations.highestStage).toBe(4);
     expect(analysis.solveTrace.steps.filter(({ rule }) => rule === 'assumptionContradiction'))
       .toMatchObject([
         { row: 0, col: 1, color: 'white' },
@@ -788,6 +790,18 @@ describe('puzzle analysis', () => {
       expect(checkpoint.candidateCells).toBeLessThanOrEqual(checkpoint.remainingCells);
     }
   });
+
+  it('uses assumption contradictions to distinguish normal generation from easy', () => {
+    const easy = analyzePuzzle(generateNurikabeBoard(6, 42, 'easy'));
+    const normal = analyzePuzzle(generateNurikabeBoard(6, 42, 'normal'));
+
+    expect(easy.solved).toBe(true);
+    expect(easy.deductions.assumptionContradiction).toBe(0);
+    expect(easy.solveTrace.observations.highestStage).toBeLessThan(4);
+    expect(normal.solved).toBe(true);
+    expect(normal.deductions.assumptionContradiction).toBeGreaterThan(0);
+    expect(normal.solveTrace.observations.highestStage).toBe(4);
+  }, 30000);
 });
 
 describe('generator determinism and validity', () => {

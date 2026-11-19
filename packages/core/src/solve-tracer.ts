@@ -6,7 +6,7 @@ export type DeductionRule =
   | 'islandShapeIntersection' | 'islandShapeBoundary' | 'seaBridge' | 'whiteConnection'
   | 'sharedIslandSpace' | 'assumptionContradiction';
 export type TechniqueLevel = 'basic' | 'intermediate' | 'advanced';
-export type ReasoningStage = 1 | 2 | 3;
+export type ReasoningStage = 1 | 2 | 3 | 4;
 
 export const RULE_STAGES: Readonly<Record<DeductionRule, ReasoningStage>> = {
   completedIsland: 1,
@@ -21,7 +21,7 @@ export const RULE_STAGES: Readonly<Record<DeductionRule, ReasoningStage>> = {
   seaBridge: 3,
   whiteConnection: 3,
   sharedIslandSpace: 3,
-  assumptionContradiction: 3
+  assumptionContradiction: 4
 };
 
 export const RULE_PRIORITY: Readonly<Record<DeductionRule, number>> = {
@@ -80,7 +80,7 @@ export interface SolveCheckpoint {
 }
 
 export interface SolveTrace {
-  readonly version: 7;
+  readonly version: 8;
   readonly policy: 'priority-first';
   readonly steps: readonly SolveTraceStep[];
   readonly checkpoints: readonly SolveCheckpoint[];
@@ -115,7 +115,7 @@ export class SolveTracer {
   }
 
   finishCheckpoint(remainingCells: number): void {
-    const byStage = { 1: 0, 2: 0, 3: 0 };
+    const byStage = { 1: 0, 2: 0, 3: 0, 4: 0 };
     for (const stage of this.candidates.values()) byStage[stage] += 1;
     this.checkpoints.push({
       scan: this.scan,
@@ -155,7 +155,7 @@ export class SolveTracer {
       largest === null || review.cells > largest.cells ? review : largest, null);
     const pending = this.checkpoints.filter(({ remainingCells }) => remainingCells > 0);
     return {
-      version: 7,
+      version: 8,
       policy: 'priority-first',
       steps: this.steps.map((step) => ({ ...step, review: { ...step.review } })),
       checkpoints: this.checkpoints.map((checkpoint) => ({ ...checkpoint, byStage: { ...checkpoint.byStage } })),
@@ -163,7 +163,8 @@ export class SolveTracer {
         ...metrics,
         deductions: { ...metrics.deductions },
         confirmedCells: this.steps.length,
-        highestStage: stages.includes(3) ? 3 : stages.includes(2) ? 2 : stages.includes(1) ? 1 : null,
+        highestStage: stages.includes(4) ? 4 : stages.includes(3) ? 3
+          : stages.includes(2) ? 2 : stages.includes(1) ? 1 : null,
         maxReview: maxReview === null ? null : { ...maxReview },
         minCandidateCells: pending.length === 0 ? null
           : pending.reduce((min, { candidateCells }) => Math.min(min, candidateCells), Infinity),

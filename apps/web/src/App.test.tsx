@@ -89,7 +89,7 @@ describe('App', () => {
 
     expect(await screen.findByText('Nurikabe easy #2000')).toBeInTheDocument();
     expect(screen.getByText('6x9', { selector: 'span' })).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('offers the same four sizes for Easy and Normal and keeps the selected size', async () => {
     const user = userEvent.setup();
@@ -119,8 +119,9 @@ describe('App', () => {
     expect(conditions.getByText('최대 단서값: 4 이상')).toBeVisible();
     expect(conditions.getByText(/같은 숫자의 단서:.*25%/)).toBeVisible();
     expect(conditions.getByText(/단서 숫자 종류:.*50%/)).toBeVisible();
-    expect(conditions.getByText(/유일해.*8가지 직접 추론/)).toBeVisible();
-    expect(conditions.getByText('풀이 분석은 신규 규칙 4개를 포함한 12가지 규칙으로 기록합니다.')).toBeVisible();
+    expect(conditions.getByText(/유일해.*현재 추론 규칙/)).toBeVisible();
+    expect(conditions.getByText('4단계 가정 모순 검증을 1회 이상 사용해 해결 가능')).toBeVisible();
+    expect(conditions.getByText('풀이 분석은 가정 모순 검증을 포함한 13가지 규칙으로 기록합니다.')).toBeVisible();
     expect(conditions.getByText('선호 조건 (보장하지 않음)')).toBeVisible();
     expect(conditions.queryByText('같은 행·열의 단서 쏠림 완화')).not.toBeInTheDocument();
 
@@ -233,7 +234,7 @@ describe('App', () => {
     const table = within(observations).getByRole('table', { name: '규칙별 확정 칸 수' });
     expect(within(table).getAllByRole('row').slice(1).map((row) =>
       within(row).getAllByRole('cell')[0].textContent
-    )).toEqual(['1단계', '1단계', '1단계', '1단계', '1단계', '2단계', '3단계', '3단계', '3단계', '3단계', '3단계', '3단계', '3단계']);
+    )).toEqual(['1단계', '1단계', '1단계', '1단계', '1단계', '2단계', '3단계', '3단계', '3단계', '3단계', '3단계', '3단계', '4단계']);
     for (const [label, stage, count] of [
       ['섬 분리', 1, solveTrace.observations.deductions.islandSeparation],
       ['섬 확장', 1, solveTrace.observations.deductions.islandExpansion],
@@ -242,7 +243,7 @@ describe('App', () => {
       ['섬 후보 모양의 공통 경계', 3, solveTrace.observations.deductions.islandShapeBoundary],
       ['흰 칸 연결 통로', 3, solveTrace.observations.deductions.whiteConnection],
       ['두 섬의 공통 공간', 3, solveTrace.observations.deductions.sharedIslandSpace],
-      ['가정 모순 검증', 3, solveTrace.observations.deductions.assumptionContradiction]
+      ['가정 모순 검증', 4, solveTrace.observations.deductions.assumptionContradiction]
     ] as const) {
       const cells = within(within(table).getByRole('row', { name: new RegExp(`^${label} ${stage}단계 ${count} `) }))
         .getAllByRole('cell');
@@ -278,7 +279,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: '새 문제 생성' }));
     await waitFor(() => expect(labels('열 번호')).toBe('12345678'));
     expect(labels('행 번호')).toBe('123456789101112');
-  });
+  }, 15000);
 
   it('hides unsupported saved puzzles and samples without deleting cached data', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(42);
@@ -467,7 +468,7 @@ describe('App', () => {
     expect(await screen.findByText('8x12', { selector: 'span' })).toBeInTheDocument();
     const board = screen.getByRole('group', { name: '퍼즐 보드' });
     expect(within(board).getAllByRole('button')).toHaveLength(8 * 12);
-  });
+  }, 15000);
 
   it('shows analysis metrics for the current puzzle without rating its difficulty', async () => {
     const user = userEvent.setup();

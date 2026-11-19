@@ -1,0 +1,13 @@
+{
+  "name": "nurikabe",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/web run build",
+    "typecheck": "npx tsc -p apps/web/tsconfig.json --noEmit",
+    "test:core": "npm --prefix packages/core run test",
+    "test:storage": "npm --prefix packages/storage run test",
+    "test:web": "npm --prefix apps/web run test"
+  }
+}

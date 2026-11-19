@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@core": ["../../packages/core/src/index.ts"],
+      "@storage": ["../../packages/storage/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}
